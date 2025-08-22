@@ -427,13 +427,9 @@ macro_rules! __log_enabled {
 #[doc(hidden)]
 #[macro_export]
 macro_rules! __log_logger {
-    (__log_global_logger) => {{
-        log::__private_api::GlobalLogger
-    }};
+    (__log_global_logger) => {{ log::__private_api::GlobalLogger }};
 
-    ($logger:expr) => {{
-        &($logger)
-    }};
+    ($logger:expr) => {{ &($logger) }};
 }
 
 // These macros use a pattern of #[cfg]s to produce nicer error

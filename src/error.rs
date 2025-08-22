@@ -36,7 +36,7 @@ impl From<std::io::Error> for LogError {
 impl Display for LogError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         return match self {
-            LogError::E(ref err) => {
+            LogError::E(err) => {
                 write!(f, "Rbatis Error: {}", err)
             }
         };

@@ -2,14 +2,14 @@ use crate::appender::{Command, FastLogRecord, LogAppender};
 use crate::consts::LogSize;
 use crate::error::LogError;
 use crate::plugin::file_name::FileName;
-use crate::{chan, Receiver, Sender, WaitGroup};
+use crate::{Receiver, Sender, WaitGroup, chan};
 use fastdate::DateTime;
 use std::cell::RefCell;
 use std::fs::{DirEntry, File, OpenOptions};
 use std::io::{Seek, SeekFrom, Write};
 use std::ops::Deref;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::time::{Duration, SystemTime};
 
 /// .zip or .lz4 or any one packer
@@ -507,11 +507,7 @@ impl LogAppender for FileSplitAppender {
                         self.temp_bytes.fetch_add(
                             {
                                 let w = self.file.write(temp.as_bytes());
-                                if let Ok(w) = w {
-                                    w
-                                } else {
-                                    0
-                                }
+                                if let Ok(w) = w { w } else { 0 }
                             },
                             Ordering::SeqCst,
                         );
@@ -532,11 +528,7 @@ impl LogAppender for FileSplitAppender {
                         self.temp_bytes.fetch_add(
                             {
                                 let w = self.file.write(temp.as_bytes());
-                                if let Ok(w) = w {
-                                    w
-                                } else {
-                                    0
-                                }
+                                if let Ok(w) = w { w } else { 0 }
                             },
                             Ordering::SeqCst,
                         );
@@ -550,11 +542,7 @@ impl LogAppender for FileSplitAppender {
             let _ = self.temp_bytes.fetch_add(
                 {
                     let w = self.file.write(temp.as_bytes());
-                    if let Ok(w) = w {
-                        w
-                    } else {
-                        0
-                    }
+                    if let Ok(w) = w { w } else { 0 }
                 },
                 Ordering::SeqCst,
             );

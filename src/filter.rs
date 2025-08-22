@@ -22,7 +22,9 @@ pub struct ModuleFilter {
 
 impl ModuleFilter {
     pub fn new() -> Self {
-        Self { modules: SyncVec::new() }
+        Self {
+            modules: SyncVec::new(),
+        }
     }
 }
 

@@ -4,7 +4,7 @@ extern crate test;
 
 use fast_log::Config;
 
-use test::{black_box, Bencher};
+use test::{Bencher, black_box};
 
 // 85 ns/iter (+/- 2073)
 #[bench]

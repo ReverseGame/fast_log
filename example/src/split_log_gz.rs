@@ -1,6 +1,6 @@
 use fast_log::config::Config;
 use fast_log::consts::LogSize;
-use fast_log::plugin::file_split::{RollingType, KeepType, Rolling};
+use fast_log::plugin::file_split::{KeepType, Rolling, RollingType};
 use fast_log::plugin::packer::GZipPacker;
 
 fn main() {

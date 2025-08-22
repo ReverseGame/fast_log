@@ -1,27 +1,27 @@
 use crate::appender::{Command, FastLogRecord};
 use crate::config::Config;
 use crate::error::LogError;
-use crate::{chan, spawn, Receiver, SendError, Sender, WaitGroup};
+use crate::{Receiver, SendError, Sender, WaitGroup, chan, spawn};
+use dashmap::DashMap;
 use log::{LevelFilter, Log, Metadata, Record};
 use std::sync::{Arc, LazyLock, OnceLock};
 use std::time::SystemTime;
-use dashmap::DashMap;
 pub static LOGGERS: LazyLock<DashMap<String, &'static Logger>> = LazyLock::new(DashMap::new);
 /// get Logger,but you must call `fast_log::init`
 pub fn logger(key: &str) -> &'static Logger {
-    let key = if key.contains("::") {
-        key.split_once( "::").unwrap().0
-    } else {
-        key
-    };
     if LOGGERS.contains_key(key) {
         LOGGERS.get(key).unwrap().value()
     } else {
-        let _ = init(Config::new().chan_len(Some(5000)).file(&format!("{}.log", key)), key);
+        let key = "unknown";
+        let _ = init(
+            Config::new()
+                .chan_len(Some(5000))
+                .file(&format!("{}.log", key)),
+            key,
+        );
         LOGGERS.get(key).unwrap().value()
     }
 }
-
 
 pub struct Logger {
     pub cfg: OnceLock<Config>,
@@ -76,7 +76,14 @@ impl Logger {
 }
 
 pub struct Loggers {
-    pub key: &'static str
+    pub key: &'static str,
+}
+
+impl Loggers {
+    pub fn new(key: &'static str, config: Config) -> Self {
+        let _ = init(config, key);
+        Self { key }
+    }
 }
 
 impl Loggers {
@@ -300,10 +307,10 @@ pub fn flush() -> Result<WaitGroup, LogError> {
         now: SystemTime::now(),
         formated: String::new(),
     };
-        let mut keys = vec![];
-        for i in LOGGERS.iter() {
-            keys.push(i.key().to_string());
-        }
+    let mut keys = vec![];
+    for i in LOGGERS.iter() {
+        keys.push(i.key().to_string());
+    }
     for key in &keys {
         let result = logger(key)
             .send

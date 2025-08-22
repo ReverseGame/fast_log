@@ -1,3 +1,4 @@
+use crate::FastLogFormat;
 use crate::appender::{LogAppender, RecordFormat};
 use crate::consts::LogSize;
 use crate::filter::Filter;
@@ -7,7 +8,6 @@ use crate::plugin::file_loop::FileLoopAppender;
 use crate::plugin::file_split::{
     CanRollingPack, FileSplitAppender, Keep, Packer, RawFile, SplitFile,
 };
-use crate::FastLogFormat;
 use dark_std::sync::SyncVec;
 use log::LevelFilter;
 use parking_lot::Mutex;
@@ -92,7 +92,8 @@ impl Config {
     }
     /// add a ConsoleStderrAppender
     pub fn console_stderr(self) -> Self {
-        self.appends.push(Mutex::new(Box::new(ConsoleStderrAppender {})));
+        self.appends
+            .push(Mutex::new(Box::new(ConsoleStderrAppender {})));
         self
     }
     /// add a FileAppender
