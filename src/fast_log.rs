@@ -9,6 +9,11 @@ use dashmap::DashMap;
 pub static LOGGERS: LazyLock<DashMap<String, &'static Logger>> = LazyLock::new(DashMap::new);
 /// get Logger,but you must call `fast_log::init`
 pub fn logger(key: &str) -> &'static Logger {
+    let key = if key.contains("::") {
+        key.split_once( "::").unwrap().0
+    } else {
+        key
+    };
     if LOGGERS.contains_key(key) {
         LOGGERS.get(key).unwrap().value()
     } else {
@@ -139,8 +144,6 @@ pub fn init(config: Config, key: &str) -> Result<&'static Logger, LogError> {
         .set(config)
         .map_err(|_| LogError::from("set fail="))?;
     LOGGERS.insert(key.to_string(), Box::leak(Box::new(logger_default)));
-    //main recv data
- 
 
     let mut receiver_vec = vec![];
     let mut sender_vec: Vec<Sender<Arc<Vec<FastLogRecord>>>> = vec![];
