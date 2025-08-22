@@ -10,7 +10,7 @@ fn main() {
         Rolling::new(RollingType::ByDate(DateType::Day)),
         KeepType::KeepNum(2),
         LogPacker {},
-    ))
+    ), "test")
         .unwrap();
     for _ in 0..60 {
         sleep(Duration::from_secs(1));

@@ -3,15 +3,15 @@ use crate::config::Config;
 use crate::error::LogError;
 use crate::{chan, spawn, Receiver, SendError, Sender, WaitGroup};
 use log::{LevelFilter, Log, Metadata, Record};
-use std::sync::{Arc, OnceLock};
+use std::sync::{Arc, LazyLock, OnceLock};
 use std::time::SystemTime;
-
-pub static LOGGER: OnceLock<Logger> = OnceLock::new();
-
+use dashmap::DashMap;
+pub static LOGGERS: LazyLock<DashMap<String, &'static Logger>> = LazyLock::new(DashMap::new);
 /// get Logger,but you must call `fast_log::init`
-pub fn logger() -> &'static Logger {
-    LOGGER.get_or_init(|| Logger::default())
+pub fn logger(key: &str) -> &'static Logger {
+    LOGGERS.entry( key.to_string()).or_insert_with(|| Box::leak(Box::new(Logger::default()))).value()
 }
+
 
 pub struct Logger {
     pub cfg: OnceLock<Config>,
@@ -49,12 +49,19 @@ impl Logger {
             now: SystemTime::now(),
             formated: log,
         };
-        if let Some(send) = logger().send.get() {
-            send.send(fast_log_record)
-        } else {
-            // Ok(())
-            Err(crossbeam_channel::SendError(fast_log_record))
+        let mut keys = vec![];
+        for i in LOGGERS.iter() {
+            keys.push(i.key().to_string());
         }
+        for key in &keys {
+            if let Some(send) = logger(key).send.get() {
+                let _ = send.send(fast_log_record.clone());
+            } else {
+                // Ok(())
+                println!("{}", crossbeam_channel::SendError(fast_log_record.clone()))
+            }
+        }
+        Ok(())
     }
 
     pub fn wait(&self) {
@@ -67,8 +74,9 @@ impl Log for Logger {
         metadata.level() <= self.get_level()
     }
     fn log(&self, record: &Record) {
-        if let Some(filter) = logger().cfg.get() {
-            if let Some(send) = logger().send.get() {
+        let key = record.module_path().unwrap_or("unknown");
+        if let Some(filter) = logger(key).cfg.get() {
+            if let Some(send) = logger(key).send.get() {
                 for filter in filter.filters.iter() {
                     if !filter.do_log(record) {
                         return;
@@ -98,21 +106,21 @@ impl Log for Logger {
     }
 }
 
-pub fn init(config: Config) -> Result<&'static Logger, LogError> {
+pub fn init(config: Config, key: &str) -> Result<&'static Logger, LogError> {
     if config.appends.is_empty() {
         return Err(LogError::from("[fast_log] appends can not be empty!"));
     }
     let (s, r) = chan(config.chan_len);
-    logger()
+    logger(key)
         .send
         .set(s)
         .map_err(|_| LogError::from("set fail"))?;
-    logger()
+    logger(key)
         .recv
         .set(r)
         .map_err(|_| LogError::from("set fail"))?;
-    logger().set_level(config.level);
-    logger()
+    logger(key).set_level(config.level);
+    logger(key)
         .cfg
         .set(config)
         .map_err(|_| LogError::from("set fail="))?;
@@ -123,7 +131,7 @@ pub fn init(config: Config) -> Result<&'static Logger, LogError> {
 
     let mut receiver_vec = vec![];
     let mut sender_vec: Vec<Sender<Arc<Vec<FastLogRecord>>>> = vec![];
-    let cfg = logger().cfg.get().expect("logger cfg is none");
+    let cfg = logger(key).cfg.get().expect("logger cfg is none");
     for a in cfg.appends.iter() {
         let (s, r) = chan(cfg.chan_len);
         sender_vec.push(s);
@@ -175,10 +183,11 @@ pub fn init(config: Config) -> Result<&'static Logger, LogError> {
     }
     let sender_vec = Arc::new(sender_vec);
     for _ in 0..1 {
+        let key = key.to_string();
         let senders = sender_vec.clone();
         spawn(move || {
             loop {
-                if let Some(recv) = logger().recv.get() {
+                if let Some(recv) = logger(&key).recv.get() {
                     let mut remain = Vec::with_capacity(recv.len());
                     //recv
                     if recv.len() == 0 {
@@ -200,7 +209,7 @@ pub fn init(config: Config) -> Result<&'static Logger, LogError> {
                     let mut exit = false;
                     for x in &mut remain {
                         if x.formated.is_empty() {
-                            logger()
+                            logger(&key)
                                 .cfg
                                 .get()
                                 .expect("logger cfg is none")
@@ -224,7 +233,7 @@ pub fn init(config: Config) -> Result<&'static Logger, LogError> {
             }
         });
     }
-    return Ok(logger());
+    Ok(logger(key))
 }
 
 pub fn exit() -> Result<(), LogError> {
@@ -239,18 +248,25 @@ pub fn exit() -> Result<(), LogError> {
         now: SystemTime::now(),
         formated: String::new(),
     };
-    let result = logger()
-        .send
-        .get()
-        .ok_or_else(|| LogError::from("not init"))?
-        .send(fast_log_record);
-    match result {
-        Ok(()) => {
-            return Ok(());
-        }
-        _ => {}
+    let mut keys = vec![];
+    for i in LOGGERS.iter() {
+        keys.push(i.key().to_string());
     }
-    return Err(LogError::E("[fast_log] exit fail!".to_string()));
+    for key in &keys {
+        let result = logger(key)
+            .send
+            .get()
+            .ok_or_else(|| LogError::from("not init"))?
+            .send(fast_log_record.clone());
+        match result {
+            Ok(()) => {}
+            _ => {
+                println!("[fast_log] exit fail! key={:?}", key);
+            }
+        }
+    }
+
+    Ok(())
 }
 
 pub fn flush() -> Result<WaitGroup, LogError> {
@@ -266,20 +282,27 @@ pub fn flush() -> Result<WaitGroup, LogError> {
         now: SystemTime::now(),
         formated: String::new(),
     };
-    let result = logger()
-        .send
-        .get()
-        .ok_or_else(|| LogError::from("not init"))?
-        .send(fast_log_record);
-    match result {
-        Ok(()) => {
-            return Ok(wg);
+        let mut keys = vec![];
+        for i in LOGGERS.iter() {
+            keys.push(i.key().to_string());
         }
-        _ => {}
-    }
-    return Err(LogError::E("[fast_log] flush fail!".to_string()));
+    for key in &keys {
+        let result = logger(key)
+            .send
+            .get()
+            .ok_or_else(|| LogError::from("not init"))?
+            .send(fast_log_record.clone());
+        match result {
+            Ok(()) => {}
+            _ => {
+                println!("[fast_log] flush fail! key={:?}", key);
+            }
+        }
+    }    
+
+    Ok(wg)
 }
 
-pub fn print(log: String) -> Result<(), SendError<FastLogRecord>> {
-    logger().print(log)
+pub fn print(log: String, key: &str) -> Result<(), SendError<FastLogRecord>> {
+    logger(key).print(log)
 }
