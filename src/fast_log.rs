@@ -9,7 +9,12 @@ use dashmap::DashMap;
 pub static LOGGERS: LazyLock<DashMap<String, &'static Logger>> = LazyLock::new(DashMap::new);
 /// get Logger,but you must call `fast_log::init`
 pub fn logger(key: &str) -> &'static Logger {
-    LOGGERS.entry( key.to_string()).or_insert_with(|| Box::leak(Box::new(Logger::default()))).value()
+    if LOGGERS.contains_key(key) {
+        LOGGERS.get(key).unwrap().value()
+    } else {
+        let _ = init(Config::new().file(&format!("{}.log", key)), key);
+        LOGGERS.get(key).unwrap().value()
+    }
 }
 
 
@@ -63,13 +68,21 @@ impl Logger {
         }
         Ok(())
     }
+}
 
-    pub fn wait(&self) {
-        self.flush();
+pub struct Loggers;
+
+impl Loggers {
+    pub fn set_level(&self, level: LevelFilter) {
+        log::set_max_level(level);
+    }
+
+    pub fn get_level(&self) -> LevelFilter {
+        log::max_level()
     }
 }
 
-impl Log for Logger {
+impl Log for Loggers {
     fn enabled(&self, metadata: &Metadata) -> bool {
         metadata.level() <= self.get_level()
     }
@@ -111,23 +124,23 @@ pub fn init(config: Config, key: &str) -> Result<&'static Logger, LogError> {
         return Err(LogError::from("[fast_log] appends can not be empty!"));
     }
     let (s, r) = chan(config.chan_len);
-    logger(key)
+    let logger_default = Logger::default();
+    logger_default
         .send
         .set(s)
         .map_err(|_| LogError::from("set fail"))?;
-    logger(key)
+    logger_default
         .recv
         .set(r)
         .map_err(|_| LogError::from("set fail"))?;
-    logger(key).set_level(config.level);
-    logger(key)
+    logger_default.set_level(config.level);
+    logger_default
         .cfg
         .set(config)
         .map_err(|_| LogError::from("set fail="))?;
+    LOGGERS.insert(key.to_string(), Box::leak(Box::new(logger_default)));
     //main recv data
-    // log::set_logger(logger())
-    //     .map(|()| log::set_max_level(logger().cfg.get().expect("logger cfg is none").level))
-    //     .map_err(|e| LogError::from(e))?;
+ 
 
     let mut receiver_vec = vec![];
     let mut sender_vec: Vec<Sender<Arc<Vec<FastLogRecord>>>> = vec![];
@@ -298,7 +311,7 @@ pub fn flush() -> Result<WaitGroup, LogError> {
                 println!("[fast_log] flush fail! key={:?}", key);
             }
         }
-    }    
+    }
 
     Ok(wg)
 }

@@ -13,6 +13,7 @@ fn main() {
         Config::new()
             .file_split("target/logs/",  Rolling::new(RollingType::BySize(LogSize::MB(1))),KeepType::All, LogPacker {})
             .chan_len(Some(100000)),
+        "test"
     )
     .unwrap();
     log::info!("Commencing yak shaving{}", 0);
