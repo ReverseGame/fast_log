@@ -75,7 +75,9 @@ impl Logger {
     }
 }
 
-pub struct Loggers;
+pub struct Loggers {
+    pub key: &'static str
+}
 
 impl Loggers {
     pub fn set_level(&self, level: LevelFilter) {
