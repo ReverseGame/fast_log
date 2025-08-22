@@ -1,8 +1,10 @@
+use log::Log;
 use fast_log::config::Config;
-use fast_log::FastLogFormatJson;
+use fast_log::{FastLogFormatJson, Loggers};
 
 fn main() {
-    fast_log::init(Config::new().format(FastLogFormatJson::new()).console()).unwrap();
-    log::info!("Commencing \"yak\" shaving{}", 0);
-    log::logger().flush();
+    log::set_max_level(log::LevelFilter::Info);
+    let logger = Loggers::new("test", Config::new().format(FastLogFormatJson::new()).console());
+    log::info!(logger: &logger, "Commencing \"yak\" shaving{}", 0);
+    logger.flush();
 }
