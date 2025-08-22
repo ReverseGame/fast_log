@@ -123,7 +123,7 @@ macro_rules! __log {
         if lvl <= log::STATIC_MAX_LEVEL && lvl <= log::max_level() {
             log::__private_api::log(
                 $logger,
-                $crate::__private_api::format_args!($($arg)+),
+                log::__private_api::format_args!($($arg)+),
                 lvl,
                 &($target, $logger.key, log::__private_api::loc()),
                 &[$(($crate::__log_key!($key), $crate::__log_value!($key $(:$capture)* = $($value)*))),+] as &[_],
@@ -137,7 +137,7 @@ macro_rules! __log {
         if lvl <= log::STATIC_MAX_LEVEL && lvl <= log::max_level() {
             log::__private_api::log(
                 $logger,
-                $crate::__private_api::format_args!($($arg)+),
+                log::__private_api::format_args!($($arg)+),
                 lvl,
                 &($target, $logger.key, log::__private_api::loc()),
                 (),
@@ -418,7 +418,7 @@ macro_rules! __log_enabled {
         let lvl = $lvl;
         lvl <= log::STATIC_MAX_LEVEL
             && lvl <= log::max_level()
-            && $crate::__private_api::enabled($logger, lvl, $target)
+            && log::__private_api::enabled($logger, lvl, $target)
     }};
 }
 
@@ -445,7 +445,7 @@ macro_rules! __log_logger {
 macro_rules! __log_key {
     // key1 = 42
     ($($args:ident)*) => {
-        $crate::__private_api::stringify!($($args)*)
+        log::__private_api::stringify!($($args)*)
     };
     // "key1" = 42
     ($($args:expr)*) => {
@@ -481,21 +481,21 @@ macro_rules! __log_value {
     };
     // ToValue
     (($args:expr):value) => {
-        $crate::__private_api::capture_to_value(&&$args)
+        log::__private_api::capture_to_value(&&$args)
     };
     // Debug
     (($args:expr):?) => {
-        $crate::__private_api::capture_debug(&&$args)
+        log::__private_api::capture_debug(&&$args)
     };
     (($args:expr):debug) => {
-        $crate::__private_api::capture_debug(&&$args)
+        log::__private_api::capture_debug(&&$args)
     };
     // Display
     (($args:expr):%) => {
-        $crate::__private_api::capture_display(&&$args)
+        log::__private_api::capture_display(&&$args)
     };
     (($args:expr):display) => {
-        $crate::__private_api::capture_display(&&$args)
+        log::__private_api::capture_display(&&$args)
     };
     //Error
     (($args:expr):err) => {
@@ -525,7 +525,7 @@ macro_rules! __log_value {
 #[cfg(feature = "kv_sval")]
 macro_rules! __log_value_sval {
     ($args:expr) => {
-        $crate::__private_api::capture_sval(&&$args)
+        log::__private_api::capture_sval(&&$args)
     };
 }
 
@@ -543,7 +543,7 @@ macro_rules! __log_value_sval {
 #[cfg(feature = "kv_serde")]
 macro_rules! __log_value_serde {
     ($args:expr) => {
-        $crate::__private_api::capture_serde(&&$args)
+        log::__private_api::capture_serde(&&$args)
     };
 }
 
@@ -563,7 +563,7 @@ macro_rules! __log_value_serde {
 #[cfg(feature = "kv_std")]
 macro_rules! __log_value_error {
     ($args:expr) => {
-        $crate::__private_api::capture_error(&$args)
+        log::__private_api::capture_error(&$args)
     };
 }
 
