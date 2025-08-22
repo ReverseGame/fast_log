@@ -79,6 +79,12 @@ pub struct Loggers {
     pub key: &'static str,
 }
 
+impl Default for Loggers {
+    fn default() -> Self {
+        Self { key: "unknown" }
+    }
+}
+
 impl Loggers {
     pub fn new(key: &'static str, config: Config) -> Self {
         let _ = init(config, key);
