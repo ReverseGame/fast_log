@@ -117,9 +117,9 @@ pub fn init(config: Config) -> Result<&'static Logger, LogError> {
         .set(config)
         .map_err(|_| LogError::from("set fail="))?;
     //main recv data
-    log::set_logger(logger())
-        .map(|()| log::set_max_level(logger().cfg.get().expect("logger cfg is none").level))
-        .map_err(|e| LogError::from(e))?;
+    // log::set_logger(logger())
+    //     .map(|()| log::set_max_level(logger().cfg.get().expect("logger cfg is none").level))
+    //     .map_err(|e| LogError::from(e))?;
 
     let mut receiver_vec = vec![];
     let mut sender_vec: Vec<Sender<Arc<Vec<FastLogRecord>>>> = vec![];
