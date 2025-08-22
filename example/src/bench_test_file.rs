@@ -1,7 +1,7 @@
 use fast_log::bencher::TPS;
 use fast_log::config::Config;
 use std::time::Instant;
-use log::LevelFilter;
+use log::{log, LevelFilter};
 use fast_log::Loggers;
 
 /// cargo run --release --package example --bin bench_test_file
@@ -21,6 +21,7 @@ fn main() {
     for index in 0..total {
         log::info!("Commencing yak shaving{}", index);
     }
+    log::__private_api::log(log::Level::Info, "Commencing yak shaving")
     //wait log finish write all
     log::logger().flush();
     now.time(total);

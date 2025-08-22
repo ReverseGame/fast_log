@@ -9,7 +9,7 @@ pub mod filter;
 pub mod formats;
 pub mod plugin;
 pub mod runtime;
-
+pub mod macros;
 
 pub use crate::config::Config;
 pub use crate::fast_log::*;

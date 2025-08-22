@@ -20,10 +20,10 @@ default = ["runtime_thread"]
 gzip = ["flate2"]
 lz4 = ["lz4_flex"]
 runtime_thread = []
-
+kv = []
 [dependencies]
 fastdate = "0.3"
-log = { version = "0.4", features = ["std"] }
+log = { version = "0.4", features = ["std", "kv"] }
 crossbeam-utils = "0.8"
 crossbeam = "0.8"
 crossbeam-channel = "0.5"

@@ -17,7 +17,7 @@ pub fn logger(key: &str) -> &'static Logger {
     if LOGGERS.contains_key(key) {
         LOGGERS.get(key).unwrap().value()
     } else {
-        let _ = init(Config::new().file(&format!("{}.log", key)), key);
+        let _ = init(Config::new().chan_len(Some(5000)).file(&format!("{}.log", key)), key);
         LOGGERS.get(key).unwrap().value()
     }
 }
