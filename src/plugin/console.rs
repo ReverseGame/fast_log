@@ -5,7 +5,7 @@ pub struct ConsoleAppender {}
 
 impl LogAppender for ConsoleAppender {
     fn do_logs(&mut self, records: &[FastLogRecord]) {
-        if records.len() == 0 {
+        if records.is_empty() {
             return;
         }
         let cap = records.iter().map(|record| record.formated.len()).sum();
@@ -13,7 +13,7 @@ impl LogAppender for ConsoleAppender {
         for x in records {
             buffer.push_str(&x.formated);
         }
-        print!("{}", buffer);
+        print!("{buffer}");
     }
 }
 
@@ -22,7 +22,7 @@ pub struct ConsoleStderrAppender {}
 
 impl LogAppender for ConsoleStderrAppender {
     fn do_logs(&mut self, records: &[FastLogRecord]) {
-        if records.len() == 0 {
+        if records.is_empty() {
             return;
         }
         let cap = records.iter().map(|record| record.formated.len()).sum();
@@ -30,6 +30,6 @@ impl LogAppender for ConsoleStderrAppender {
         for record in records {
             buffer.push_str(&record.formated);
         }
-        eprint!("{}", buffer);
+        eprint!("{buffer}");
     }
 }

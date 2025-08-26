@@ -16,13 +16,14 @@ pub fn logger(key: &str) -> &'static Logger {
         let _ = init(
             Config::new()
                 .chan_len(Some(5000))
-                .file(&format!("{}.log", key)),
+                .file(&format!("{key}.log")),
             key,
         );
         LOGGERS.get(key).unwrap().value()
     }
 }
 
+#[derive(Default)]
 pub struct Logger {
     pub cfg: OnceLock<Config>,
     pub send: OnceLock<Sender<FastLogRecord>>,
@@ -30,14 +31,6 @@ pub struct Logger {
 }
 
 impl Logger {
-    pub fn default() -> Self {
-        Self {
-            cfg: OnceLock::default(),
-            send: OnceLock::default(),
-            recv: OnceLock::default(),
-        }
-    }
-
     pub fn set_level(&self, level: LevelFilter) {
         log::set_max_level(level);
     }
@@ -108,33 +101,30 @@ impl Log for Loggers {
     }
     fn log(&self, record: &Record) {
         let key = record.module_path().unwrap_or("unknown");
-        if let Some(filter) = logger(key).cfg.get() {
-            if let Some(send) = logger(key).send.get() {
-                for filter in filter.filters.iter() {
-                    if !filter.do_log(record) {
-                        return;
-                    }
+        if let Some(filter) = logger(key).cfg.get()
+            && let Some(send) = logger(key).send.get()
+        {
+            for filter in filter.filters.iter() {
+                if !filter.do_log(record) {
+                    return;
                 }
-                let _ = send.send(FastLogRecord {
-                    command: Command::CommandRecord,
-                    level: record.level(),
-                    target: record.metadata().target().to_string(),
-                    args: record.args().to_string(),
-                    module_path: record.module_path().unwrap_or_default().to_string(),
-                    file: record.file().unwrap_or_default().to_string(),
-                    line: record.line().clone(),
-                    now: SystemTime::now(),
-                    formated: String::new(),
-                });
             }
+            let _ = send.send(FastLogRecord {
+                command: Command::CommandRecord,
+                level: record.level(),
+                target: record.metadata().target().to_string(),
+                args: record.args().to_string(),
+                module_path: record.module_path().unwrap_or_default().to_string(),
+                file: record.file().unwrap_or_default().to_string(),
+                line: record.line(),
+                now: SystemTime::now(),
+                formated: String::new(),
+            });
         }
     }
     fn flush(&self) {
-        match flush() {
-            Ok(v) => {
-                v.wait();
-            }
-            Err(_) => {}
+        if let Ok(v) = flush() {
+            v.wait();
         }
     }
 }
@@ -173,21 +163,14 @@ pub fn init(config: Config, key: &str) -> Result<&'static Logger, LogError> {
             let mut exit = false;
             loop {
                 let mut remain = vec![];
-                if receiver.len() == 0 {
-                    if let Ok(msg) = receiver.recv() {
-                        remain.push(msg);
-                    }
+                if receiver.is_empty()
+                    && let Ok(msg) = receiver.recv()
+                {
+                    remain.push(msg);
                 }
                 //recv all
-                loop {
-                    match receiver.try_recv() {
-                        Ok(v) => {
-                            remain.push(v);
-                        }
-                        Err(_) => {
-                            break;
-                        }
-                    }
+                while let Ok(v) = receiver.try_recv() {
+                    remain.push(v);
                 }
                 //lock get appender
                 let mut shared_appender = appender.lock();
@@ -217,48 +200,37 @@ pub fn init(config: Config, key: &str) -> Result<&'static Logger, LogError> {
         let key = key.to_string();
         let senders = sender_vec.clone();
         spawn(move || {
-            loop {
-                if let Some(recv) = logger(&key).recv.get() {
-                    let mut remain = Vec::with_capacity(recv.len());
-                    //recv
-                    if recv.len() == 0 {
-                        if let Ok(item) = recv.recv() {
-                            remain.push(item);
-                        }
+            while let Some(recv) = logger(&key).recv.get() {
+                let mut remain = Vec::with_capacity(recv.len());
+                //recv
+                if recv.is_empty()
+                    && let Ok(item) = recv.recv()
+                {
+                    remain.push(item);
+                }
+                //merge log
+                while let Ok(v) = recv.try_recv() {
+                    remain.push(v);
+                }
+                let mut exit = false;
+                for x in &mut remain {
+                    if x.formated.is_empty() {
+                        logger(&key)
+                            .cfg
+                            .get()
+                            .expect("logger cfg is none")
+                            .format
+                            .do_format(x);
                     }
-                    //merge log
-                    loop {
-                        match recv.try_recv() {
-                            Ok(v) => {
-                                remain.push(v);
-                            }
-                            Err(_) => {
-                                break;
-                            }
-                        }
+                    if x.command.eq(&Command::CommandExit) {
+                        exit = true;
                     }
-                    let mut exit = false;
-                    for x in &mut remain {
-                        if x.formated.is_empty() {
-                            logger(&key)
-                                .cfg
-                                .get()
-                                .expect("logger cfg is none")
-                                .format
-                                .do_format(x);
-                        }
-                        if x.command.eq(&Command::CommandExit) {
-                            exit = true;
-                        }
-                    }
-                    let data = Arc::new(remain);
-                    for x in senders.iter() {
-                        let _ = x.send(data.clone());
-                    }
-                    if exit {
-                        break;
-                    }
-                } else {
+                }
+                let data = Arc::new(remain);
+                for x in senders.iter() {
+                    let _ = x.send(data.clone());
+                }
+                if exit {
                     break;
                 }
             }
@@ -292,7 +264,7 @@ pub fn exit() -> Result<(), LogError> {
         match result {
             Ok(()) => {}
             _ => {
-                println!("[fast_log] exit fail! key={:?}", key);
+                println!("[fast_log] exit fail! key={key:?}");
             }
         }
     }
@@ -326,7 +298,7 @@ pub fn flush() -> Result<WaitGroup, LogError> {
         match result {
             Ok(()) => {}
             _ => {
-                println!("[fast_log] flush fail! key={:?}", key);
+                println!("[fast_log] flush fail! key={key:?}");
             }
         }
     }

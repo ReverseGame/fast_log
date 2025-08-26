@@ -25,7 +25,7 @@ pub trait Packer: Send + Sync {
 
     /// default 0 is not retry pack. if retry > 0 ,it will trying rePack
     fn retry(&self) -> i32 {
-        return 0;
+        0
     }
 }
 
@@ -68,26 +68,21 @@ pub trait Keep: Send {
         if let Ok(paths) = paths {
             //let mut temp_file = None;
             let mut paths_vec = vec![];
-            for path in paths {
-                match path {
-                    Ok(path) => {
-                        if let Some(v) = path.file_name().to_str() {
-                            if v == temp_name {
-                                continue;
-                            }
-                            if !v.starts_with(&base_name) {
-                                continue;
-                            }
-                        }
-                        paths_vec.push(path);
+            for path in paths.flatten() {
+                if let Some(v) = path.file_name().to_str() {
+                    if v == temp_name {
+                        continue;
                     }
-                    _ => {}
+                    if !v.starts_with(&base_name) {
+                        continue;
+                    }
                 }
+                paths_vec.push(path);
             }
-            paths_vec.sort_by(|a, b| b.file_name().cmp(&a.file_name()));
+            paths_vec.sort_by_key(|b| std::cmp::Reverse(b.file_name()));
             return paths_vec;
         }
-        return vec![];
+        vec![]
     }
 }
 
@@ -101,6 +96,10 @@ pub trait SplitFile: Send {
     fn flush(&self);
     fn len(&self) -> usize;
     fn offset(&self) -> usize;
+
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 }
 
 ///only use File
@@ -123,9 +122,10 @@ impl SplitFile for RawFile {
     {
         let file = OpenOptions::new()
             .create(true)
+            .truncate(true)
             .read(true)
             .write(true)
-            .open(&path)?;
+            .open(path)?;
         Ok(Self {
             inner: RefCell::new(file),
         })
@@ -161,7 +161,7 @@ impl SplitFile for RawFile {
     fn offset(&self) -> usize {
         let mut offset = self.len();
         if offset > 0 {
-            offset = offset - 1;
+            offset = offset.saturating_sub(1);
         }
         offset
     }
@@ -209,7 +209,7 @@ impl Rolling {
     pub fn new(how: RollingType) -> Self {
         Self {
             last: SystemTime::now(),
-            how: how,
+            how,
         }
     }
 }
@@ -229,9 +229,9 @@ impl CanRollingPack for Rolling {
         temp_size: usize,
         arg: &FastLogRecord,
     ) -> Option<String> {
-        let last_time = self.last.clone();
-        self.last = arg.now.clone();
-        return match &mut self.how {
+        let last_time = self.last;
+        self.last = arg.now;
+        match &mut self.how {
             RollingType::ByDate(date_type) => {
                 let last_time = DateTime::from_system_time(last_time, fastdate::offset_sec());
                 let log_time = DateTime::from_system_time(arg.now, fastdate::offset_sec());
@@ -249,7 +249,7 @@ impl CanRollingPack for Rolling {
                             let suffix = &temp_name[idx..];
                             temp_name.replace(
                                 suffix,
-                                &last_time.format(&format!("YYYY-MM-DDThh-mm-ss.000000{}", suffix)),
+                                &last_time.format(&format!("YYYY-MM-DDThh-mm-ss.000000{suffix}")),
                             )
                         } else {
                             let mut temp_name = temp_name.to_string();
@@ -271,7 +271,7 @@ impl CanRollingPack for Rolling {
                             let suffix = &temp_name[idx..];
                             temp_name.replace(
                                 suffix,
-                                &last_time.format(&format!("YYYY-MM-DDThh-mm-ss.000000{}", suffix)),
+                                &last_time.format(&format!("YYYY-MM-DDThh-mm-ss.000000{suffix}")),
                             )
                         } else {
                             let mut temp_name = temp_name.to_string();
@@ -286,7 +286,7 @@ impl CanRollingPack for Rolling {
             }
             RollingType::ByDuration((start_time, duration)) => {
                 let log_time = DateTime::from_system_time(arg.now, fastdate::offset_sec());
-                let next = start_time.clone().add(duration.clone());
+                let next = start_time.clone().add(*duration);
                 if log_time >= next {
                     let now = DateTime::now();
                     let last_time = DateTime::from_system_time(last_time, fastdate::offset_sec());
@@ -295,7 +295,7 @@ impl CanRollingPack for Rolling {
                             let suffix = &temp_name[idx..];
                             temp_name.replace(
                                 suffix,
-                                &last_time.format(&format!("YYYY-MM-DDThh-mm-ss.000000{}", suffix)),
+                                &last_time.format(&format!("YYYY-MM-DDThh-mm-ss.000000{suffix}")),
                             )
                         } else {
                             let mut temp_name = temp_name.to_string();
@@ -309,7 +309,7 @@ impl CanRollingPack for Rolling {
                     None
                 }
             }
-        };
+        }
     }
 }
 
@@ -341,17 +341,17 @@ impl FileSplitAppender {
             name
         };
         let mut dir_path = file_path.trim_end_matches(&temp_name).to_string();
-        if dir_path.is_empty() {
-            if let Ok(v) = std::env::current_dir() {
-                dir_path = v.to_str().unwrap_or_default().to_string();
-            }
+        if dir_path.is_empty()
+            && let Ok(v) = std::env::current_dir()
+        {
+            dir_path = v.to_str().unwrap_or_default().to_string();
         }
         let _ = std::fs::create_dir_all(&dir_path);
         let mut sp = "";
         if !dir_path.is_empty() {
             sp = "/";
         }
-        let temp_file = format!("{}{}{}", dir_path, sp, temp_name);
+        let temp_file = format!("{dir_path}{sp}{temp_name}");
         let temp_bytes = AtomicUsize::new(0);
         let file = F::new(&temp_file)?;
         let mut offset = file.offset();
@@ -411,7 +411,7 @@ pub struct LogPack {
 
 impl LogPack {
     /// write an Pack to zip file
-    pub fn do_pack(&self, packer: &Box<dyn Packer>) -> Result<bool, LogError> {
+    pub fn do_pack(&self, packer: &dyn Packer) -> Result<bool, LogError> {
         let log_file_path = self.new_log_name.as_str();
         if log_file_path.is_empty() {
             return Err(LogError::from("log_file_path.is_empty"));
@@ -420,9 +420,7 @@ impl LogPack {
             .write(true)
             .read(true)
             .open(log_file_path)
-            .map_err(|e| {
-                LogError::from(format!("open(log_file_path={}) fail={}", log_file_path, e))
-            })?;
+            .map_err(|e| LogError::from(format!("open(log_file_path={log_file_path}) fail={e}")))?;
         //make
         let r = packer.do_pack(log_file, log_file_path);
         if r.is_err() && packer.retry() > 0 {
@@ -462,28 +460,24 @@ impl Keep for KeepType {
             KeepType::All => {
                 //do nothing
             }
-            KeepType::KeepNum(n) => {
+            KeepType::KeepNum(_n) => {
                 let paths_vec = self.read_paths(dir, temp_name);
-                for index in 0..paths_vec.len() {
-                    if index >= (*n) as usize {
-                        let item = &paths_vec[index];
-                        let _ = std::fs::remove_file(item.path());
-                        removed += 1;
-                    }
+                for item in &paths_vec {
+                    let _ = std::fs::remove_file(item.path());
+                    removed += 1;
                 }
             }
             KeepType::KeepTime(duration) => {
                 let paths_vec = self.read_paths(dir, temp_name);
                 let now = DateTime::now();
-                for index in 0..paths_vec.len() {
-                    let item = &paths_vec[index];
-                    if let Ok(m) = item.metadata() {
-                        if let Ok(c) = m.created() {
-                            let time = DateTime::from(c);
-                            if now.clone().sub(duration.clone()) > time {
-                                let _ = std::fs::remove_file(item.path());
-                                removed += 1;
-                            }
+                for item in &paths_vec {
+                    if let Ok(m) = item.metadata()
+                        && let Ok(c) = m.created()
+                    {
+                        let time = DateTime::from(c);
+                        if now.clone().sub(*duration) > time {
+                            let _ = std::fs::remove_file(item.path());
+                            removed += 1;
                         }
                     }
                 }
@@ -501,9 +495,8 @@ impl LogAppender for FileSplitAppender {
         for x in records {
             match x.command {
                 Command::CommandRecord => {
-                    let current_temp_size = self.temp_bytes.load(Ordering::Relaxed)
-                        + temp.as_bytes().len()
-                        + x.formated.as_bytes().len();
+                    let current_temp_size =
+                        self.temp_bytes.load(Ordering::Relaxed) + temp.len() + x.formated.len();
                     if let Some(new_log_name) = self.can_pack.can(
                         self.packer.deref(),
                         &self.temp_name,
@@ -513,7 +506,7 @@ impl LogAppender for FileSplitAppender {
                         self.temp_bytes.fetch_add(
                             {
                                 let w = self.file.write(temp.as_bytes());
-                                if let Ok(w) = w { w } else { 0 }
+                                w.unwrap_or_default()
                             },
                             Ordering::SeqCst,
                         );
@@ -534,7 +527,7 @@ impl LogAppender for FileSplitAppender {
                         self.temp_bytes.fetch_add(
                             {
                                 let w = self.file.write(temp.as_bytes());
-                                if let Ok(w) = w { w } else { 0 }
+                                w.unwrap_or_default()
                             },
                             Ordering::SeqCst,
                         );
@@ -548,7 +541,7 @@ impl LogAppender for FileSplitAppender {
             let _ = self.temp_bytes.fetch_add(
                 {
                     let w = self.file.write(temp.as_bytes());
-                    if let Ok(w) = w { w } else { 0 }
+                    w.unwrap_or_default()
                 },
                 Ordering::SeqCst,
             );
@@ -564,24 +557,20 @@ fn spawn_saver(
     packer: Arc<Box<dyn Packer>>,
 ) {
     std::thread::spawn(move || {
-        loop {
-            if let Ok(pack) = r.recv() {
-                if pack.wg.is_some() {
-                    return;
-                }
-                let log_file_path = pack.new_log_name.clone();
-                //do save pack
-                let remove = pack.do_pack(packer.as_ref());
-                if let Ok(remove) = remove {
-                    if remove {
-                        let _ = std::fs::remove_file(log_file_path);
-                    }
-                }
-                //do rolling
-                rolling_type.do_keep(&pack.dir, &temp_name);
-            } else {
-                break;
+        while let Ok(pack) = r.recv() {
+            if pack.wg.is_some() {
+                return;
             }
+            let log_file_path = pack.new_log_name.clone();
+            //do save pack
+            let remove = pack.do_pack(packer.as_ref());
+            if let Ok(remove) = remove
+                && remove
+            {
+                let _ = std::fs::remove_file(log_file_path);
+            }
+            //do rolling
+            rolling_type.do_keep(&pack.dir, &temp_name);
         }
     });
 }

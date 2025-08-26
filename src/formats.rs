@@ -1,22 +1,24 @@
 use crate::appender::{Command, FastLogRecord, RecordFormat};
 use log::LevelFilter;
 
-pub enum TimeType {
-    Local,
-    //default
-    Utc,
-}
+#[derive(Default)]
 
-impl Default for TimeType {
-    fn default() -> Self {
-        TimeType::Local
-    }
+pub enum TimeType {
+    #[default]
+    Local,
+    Utc,
 }
 
 pub struct FastLogFormat {
     // show line level
     pub display_line_level: LevelFilter,
     pub time_type: TimeType,
+}
+
+impl Default for FastLogFormat {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl RecordFormat for FastLogFormat {
@@ -69,16 +71,9 @@ impl FastLogFormat {
     }
 }
 
+#[derive(Default)]
 pub struct FastLogFormatJson {
     pub time_type: TimeType,
-}
-
-impl Default for FastLogFormatJson {
-    fn default() -> Self {
-        Self {
-            time_type: TimeType::default(),
-        }
-    }
 }
 
 impl RecordFormat for FastLogFormatJson {

@@ -21,6 +21,10 @@ impl LogSize {
             Self::EB(eb) => eb * 1024 * 1024 * 1024 * 1024 * 1024,
         }
     }
+    
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
 
     pub fn get_len(&self) -> usize {
         self.len()

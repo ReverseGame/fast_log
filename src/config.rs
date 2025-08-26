@@ -2,7 +2,6 @@ use crate::FastLogFormat;
 use crate::appender::{LogAppender, RecordFormat};
 use crate::consts::LogSize;
 use crate::filter::Filter;
-use crate::plugin::buffer::BufferAppender;
 use crate::plugin::console::{ConsoleAppender, ConsoleStderrAppender};
 use crate::plugin::file::FileAppender;
 use crate::plugin::file_loop::FileLoopAppender;
@@ -18,8 +17,8 @@ use std::fmt::{Debug, Formatter};
 /// for example:
 /// ```rust
 /// use fast_log::Config;
-/// fn main(){
-///    fast_log::init(Config::new().console().chan_len(Some(1000000))).unwrap();
+/// fn needless_main(){
+///    fast_log::init(Config::new().console().chan_len(Some(1000000)), "unknown").unwrap();
 /// }
 /// ```
 pub struct Config {
@@ -101,13 +100,6 @@ impl Config {
     pub fn file(self, file: &str) -> Self {
         self.appends
             .push(Mutex::new(Box::new(FileAppender::new(file).unwrap())));
-        self
-    }
-
-    pub fn buffers(self, max_buffer_size: usize) -> Self {
-        self.appends.push(Mutex::new(Box::new(
-            BufferAppender::new(max_buffer_size).unwrap(),
-        )));
         self
     }
     /// add a FileLoopAppender

@@ -9,7 +9,7 @@ impl TPS for std::time::Instant {
         let time = self.elapsed();
         println!(
             "TPS: {} Iter/s",
-            (total as u128 * 1000000000 as u128 / time.as_nanos() as u128)
+            (total as u128 * 1000000000_u128 / time.as_nanos())
         );
     }
 
@@ -24,6 +24,6 @@ impl TPS for std::time::Instant {
 
     fn cost(&self) {
         let time = self.elapsed();
-        println!("cost:{:?}", time);
+        println!("cost:{time:?}");
     }
 }

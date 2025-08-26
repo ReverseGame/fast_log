@@ -8,7 +8,7 @@ pub trait Filter: Send + Sync {
 
 /// an Module Filter
 /// ```rust
-/// fn main(){
+/// fn needless_main(){
 ///    use fast_log::Config;
 ///    use fast_log::filter::ModuleFilter;
 ///    let filter = ModuleFilter::new();
@@ -16,6 +16,7 @@ pub trait Filter: Send + Sync {
 ///    fast_log::init(Config::new().console().add_filter(filter)).unwrap();
 /// }
 /// ```
+#[derive(Default)]
 pub struct ModuleFilter {
     pub modules: SyncVec<String>,
 }
@@ -38,6 +39,6 @@ impl Filter for ModuleFilter {
                 }
             }
         }
-        return true;
+        true
     }
 }
