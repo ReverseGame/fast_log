@@ -1,7 +1,6 @@
 use crate::error::LogError;
 use crate::plugin::file_split::Packer;
 use std::fs::File;
-use std::io::Write;
 
 /// keep temp{date}.log
 #[derive(Clone)]
@@ -65,6 +64,7 @@ impl Packer for ZipPacker {
     }
 
     fn do_pack_buffer(&self, log_name: &str, log: &[u8]) -> Result<bool, LogError> {
+        use std::io::Write;
         let zip_path = format!("{}.zip", log_name);
         let zip_file = File::create(zip_path)
             .map_err(|e| LogError::from(format!("[fast_log] create(&{}) fail:{}", zip_path, e)))?;
@@ -111,7 +111,28 @@ impl Packer for LZ4Packer {
                 result.err()
             )));
         }
-        return Ok(true);
+        Ok(true)
+    }
+
+    fn do_pack_buffer(&self, log_name: &str, log: &[u8]) -> Result<bool, LogError> {
+        use std::io::Write;
+        let lz4_path = format!("{}.lz4", log_name);
+        let lz4_file = File::create(&lz4_path)
+            .map_err(|e| LogError::from(format!("[fast_log] create(&{}) fail:{}", lz4_path, e)))?;
+        //write lz4 bytes data
+        let mut encoder = FrameEncoder::new(lz4_file);
+        //buf reader
+        encoder
+            .write_all(log)
+            .map_err(|e| LogError::from(e.to_string()))?;
+        let result = encoder.finish();
+        if result.is_err() {
+            return Err(LogError::from(format!(
+                "[fast_log] try zip fail{:?}",
+                result.err()
+            )));
+        }
+        Ok(true)
     }
 }
 
@@ -145,6 +166,26 @@ impl Packer for GZipPacker {
                 finish.err()
             )));
         }
-        return Ok(true);
+        Ok(true)
+    }
+
+    fn do_pack_buffer(&self, log_name: &str, log: &[u8]) -> Result<bool, LogError> {
+        use std::io::Write;
+        let zip_path = format!("{}.gz", log_name);
+        let zip_file = File::create(&zip_path)
+            .map_err(|e| LogError::from(format!("[fast_log] create(&{}) fail:{}", zip_path, e)))?;
+        //write zip bytes data
+        let mut zip = GzEncoder::new(zip_file, Compression::default());
+        zip.write_all(log)
+            .map_err(|e| LogError::from(e.to_string()))?;
+        zip.flush().map_err(|e| LogError::from(e.to_string()))?;
+        let finish = zip.finish();
+        if finish.is_err() {
+            return Err(LogError::from(format!(
+                "[fast_log] try zip fail{:?}",
+                finish.err()
+            )));
+        }
+        Ok(true)
     }
 }
