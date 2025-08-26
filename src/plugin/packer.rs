@@ -44,7 +44,7 @@ impl Packer for ZipPacker {
         }
         let zip_path = log_file_path.replace(".log", ".zip");
         let zip_file = File::create(&zip_path)
-            .map_err(|e| LogError::from(format!("[fast_log] create(&{}) fail:{}", zip_path, e)))?;
+            .map_err(|e| LogError::from(format!("[fast_log] create({zip_path}) fail:{e}")))?;
         //write zip bytes data
         let mut zip = zip::ZipWriter::new(zip_file);
         zip.start_file::<String, ()>(log_name, FileOptions::default())
@@ -65,9 +65,9 @@ impl Packer for ZipPacker {
 
     fn do_pack_buffer(&self, log_name: &str, log: &[u8]) -> Result<bool, LogError> {
         use std::io::Write;
-        let zip_path = format!("{}.zip", log_name);
-        let zip_file = File::create(zip_path)
-            .map_err(|e| LogError::from(format!("[fast_log] create(&{}) fail:{}", zip_path, e)))?;
+        let zip_path = format!("{log_name}.zip");
+        let zip_file = File::create(&zip_path)
+            .map_err(|e| LogError::from(format!("[fast_log] create({zip_path}) fail:{e}")))?;
 
         let mut zip = zip::ZipWriter::new(zip_file);
         zip.start_file::<&str, ()>(log_name, FileOptions::default())
