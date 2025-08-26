@@ -1,4 +1,3 @@
-pub mod buffer;
 pub mod console;
 pub mod file;
 pub mod file_loop;
