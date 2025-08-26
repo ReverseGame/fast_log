@@ -1,8 +1,8 @@
 use fast_log::appender::{FastLogRecord, LogAppender};
 use fast_log::config::Config;
+use fast_log::{error, info, Loggers};
 use fastdate::DateTime;
 use log::{Level, Log};
-use fast_log::{error, info, Loggers};
 
 struct CustomLog {}
 
@@ -31,7 +31,7 @@ impl LogAppender for CustomLog {
 }
 
 fn main() {
-    let logger = Loggers::new("test",Config::new().custom(CustomLog {}));
+    let logger = Loggers::new("test", Config::new().custom(CustomLog {}));
     info!(logger: &logger, "Commencing yak shaving");
     error!(logger: &logger ,"Commencing error");
     logger.flush();

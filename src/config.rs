@@ -2,6 +2,7 @@ use crate::FastLogFormat;
 use crate::appender::{LogAppender, RecordFormat};
 use crate::consts::LogSize;
 use crate::filter::Filter;
+use crate::plugin::buffer::BufferAppender;
 use crate::plugin::console::{ConsoleAppender, ConsoleStderrAppender};
 use crate::plugin::file::FileAppender;
 use crate::plugin::file_loop::FileLoopAppender;
@@ -100,6 +101,13 @@ impl Config {
     pub fn file(self, file: &str) -> Self {
         self.appends
             .push(Mutex::new(Box::new(FileAppender::new(file).unwrap())));
+        self
+    }
+
+    pub fn buffers(self, max_buffer_size: usize) -> Self {
+        self.appends.push(Mutex::new(Box::new(
+            BufferAppender::new(max_buffer_size).unwrap(),
+        )));
         self
     }
     /// add a FileLoopAppender

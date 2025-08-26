@@ -180,7 +180,7 @@ macro_rules! error {
     // (target: $target:expr, $($arg:tt)+) => ({
     //     $crate::log!(target: $target, log::Level::Error, $($arg)+)
     // });
-    // 
+    //
     // // error!("a {} event", "log")
     // ($($arg:tt)+) => ($crate::log!(log::Level::Error, $($arg)+))
 }
@@ -219,7 +219,7 @@ macro_rules! warn {
     // (target: $target:expr, $($arg:tt)+) => ({
     //     $crate::log!(target: $target, log::Level::Warn, $($arg)+)
     // });
-    // 
+    //
     // // warn!("a {} event", "log")
     // ($($arg:tt)+) => ($crate::log!(log::Level::Warn, $($arg)+))
 }
@@ -267,7 +267,7 @@ macro_rules! info {
     // (target: $target:expr, $($arg:tt)+) => ({
     //     $crate::log!(target: $target, log::Level::Info, $($arg)+)
     // });
-    // 
+    //
     // // info!("a {} event", "log")
     // ($($arg:tt)+) => ($crate::log!(log::Level::Info, $($arg)+))
 }
@@ -307,7 +307,7 @@ macro_rules! debug {
     // (target: $target:expr, $($arg:tt)+) => ({
     //     $crate::log!(target: $target, log::Level::Debug, $($arg)+)
     // });
-    // 
+    //
     // // debug!("a {} event", "log")
     // ($($arg:tt)+) => ($crate::log!(log::Level::Debug, $($arg)+))
 }
@@ -351,7 +351,7 @@ macro_rules! trace {
     // (target: $target:expr, $($arg:tt)+) => ({
     //     $crate::log!(target: $target, log::Level::Trace, $($arg)+)
     // });
-    // 
+    //
     // // trace!("a {} event", "log")
     // ($($arg:tt)+) => ($crate::log!(log::Level::Trace, $($arg)+))
 }
@@ -403,7 +403,7 @@ macro_rules! log_enabled {
     // (target: $target:expr, $lvl:expr) => ({
     //     $crate::__log_enabled!(logger: $crate::__log_logger!(__log_global_logger), target: $target, $lvl)
     // });
-    // 
+    //
     // // log_enabled!(Level::Info)
     // ($lvl:expr) => ({
     //     $crate::__log_enabled!(logger: $crate::__log_logger!(__log_global_logger), target: log::__private_api::module_path!(), $lvl)

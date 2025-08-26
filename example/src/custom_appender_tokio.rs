@@ -1,9 +1,9 @@
 use fast_log::appender::{FastLogRecord, LogAppender};
 use fast_log::config::Config;
+use fast_log::Loggers;
 use fastdate::DateTime;
 use log::{Level, Log};
 use tokio::runtime::Runtime;
-use fast_log::Loggers;
 
 struct CustomLog {
     rt: Runtime,
@@ -40,12 +40,15 @@ impl LogAppender for CustomLog {
 
 #[tokio::main]
 async fn main() {
-    let logger = Loggers::new("custom",  Config::new().custom(CustomLog {
-        rt: tokio::runtime::Builder::new_multi_thread()
-            .enable_all()
-            .build()
-            .unwrap(),
-    }));
+    let logger = Loggers::new(
+        "custom",
+        Config::new().custom(CustomLog {
+            rt: tokio::runtime::Builder::new_multi_thread()
+                .enable_all()
+                .build()
+                .unwrap(),
+        }),
+    );
     log::info!(logger: &logger, "Commencing yak shaving");
     log::error!(logger: &logger, "Commencing error");
     logger.flush();

@@ -1,6 +1,7 @@
 use crate::error::LogError;
 use crate::plugin::file_split::Packer;
 use std::fs::File;
+use std::io::Write;
 
 /// keep temp{date}.log
 #[derive(Clone)]
@@ -12,6 +13,10 @@ impl Packer for LogPacker {
 
     fn do_pack(&self, _log_file: File, _log_file_path: &str) -> Result<bool, LogError> {
         //do nothing,and not remove file
+        Ok(false)
+    }
+
+    fn do_pack_buffer(&self, _log_name: &str, _log: &[u8]) -> Result<bool, LogError> {
         Ok(false)
     }
 }
@@ -56,7 +61,24 @@ impl Packer for ZipPacker {
                 finish.err()
             )));
         }
-        return Ok(true);
+        Ok(true)
+    }
+
+    fn do_pack_buffer(&self, log_name: &str, log: &[u8]) -> Result<bool, LogError> {
+        let zip_path = format!("{}.zip", log_name);
+        let zip_file = File::create(zip_path)
+            .map_err(|e| LogError::from(format!("[fast_log] create(&{}) fail:{}", zip_path, e)))?;
+
+        let mut zip = zip::ZipWriter::new(zip_file);
+        zip.start_file::<&str, ()>(log_name, FileOptions::default())
+            .map_err(|e| LogError::from(e.to_string()))?;
+
+        zip.write_all(log)
+            .map_err(|e| LogError::from(e.to_string()))?;
+
+        zip.finish().map_err(|e| LogError::from(e.to_string()))?;
+
+        Ok(true)
     }
 }
 
