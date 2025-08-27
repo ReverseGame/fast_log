@@ -1,29 +1,23 @@
-#![feature(test)]
-#![feature(bench_black_box)]
-extern crate test;
-
-use fast_log::Config;
+use criterion::Criterion;
+use fast_log::{info, Config, Loggers};
 use fast_log::appender::{FastLogRecord, LogAppender};
 
-use test::{Bencher, black_box};
-
-#[bench]
-fn bench_log(b: &mut Bencher) {
+pub fn bench_log(c: &mut Criterion) {
     struct BenchRecvLog {}
     impl LogAppender for BenchRecvLog {
         fn do_logs(&mut self, _records: &[FastLogRecord]) {
             //nothing
         }
     }
-    fast_log::init(
+    let logger = Loggers::new(
+        "test1",
         Config::new()
             .custom(BenchRecvLog {})
             .chan_len(Some(1000000)),
-    )
-    .unwrap();
-    b.iter(|| {
-        black_box({
-            log::info!("Commencing yak shaving");
+    );
+    c.bench_function("log", |b| {
+        b.iter(|| {
+            info!(logger: &logger, "Commencing yak shaving");
         });
     });
 }
