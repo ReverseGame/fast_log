@@ -15,7 +15,7 @@ impl Packer for LogPacker {
         Ok(false)
     }
 
-    fn do_pack_buffer(&self, _log: &[u8]) -> Result<Vec<u8>, LogError> {
+    fn do_pack_buffer(&self, _log_name: &str, _log: &[u8]) -> Result<Vec<u8>, LogError> {
         Ok(vec![])
     }
 }
@@ -63,7 +63,7 @@ impl Packer for ZipPacker {
         Ok(true)
     }
 
-    fn do_pack_buffer(&self, _log: &[u8]) -> Result<Vec<u8>, LogError> {
+    fn do_pack_buffer(&self, _log_name: &str, _log: &[u8]) -> Result<Vec<u8>, LogError> {
         Ok(vec![])
     }
 }
@@ -100,7 +100,7 @@ impl Packer for LZ4Packer {
         Ok(true)
     }
 
-    fn do_pack_buffer(&self, log: &[u8]) -> Result<Vec<u8>, LogError> {
+    fn do_pack_buffer(&self, _log_name: &str, log: &[u8]) -> Result<Vec<u8>, LogError> {
         use std::io::Write;
         let mut encoder = FrameEncoder::new(Vec::new());
         //buf reader
@@ -151,7 +151,7 @@ impl Packer for GZipPacker {
         Ok(true)
     }
 
-    fn do_pack_buffer(&self, log: &[u8]) -> Result<Vec<u8>, LogError> {
+    fn do_pack_buffer(&self, _log_name: &str, log: &[u8]) -> Result<Vec<u8>, LogError> {
         use std::io::Write;
         let mut zip = GzEncoder::new(Vec::new(), Compression::default());
         zip.write_all(log)
