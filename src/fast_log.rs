@@ -68,6 +68,7 @@ impl Logger {
     }
 }
 
+#[derive(Debug, Clone)]
 pub struct Loggers {
     pub key: &'static str,
 }
