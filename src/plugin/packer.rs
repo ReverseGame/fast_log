@@ -15,8 +15,8 @@ impl Packer for LogPacker {
         Ok(false)
     }
 
-    fn do_pack_buffer(&self, _log_name: &str, _log: &[u8]) -> Result<bool, LogError> {
-        Ok(false)
+    fn do_pack_buffer(&self, _log: &[u8]) -> Result<Vec<u8>, LogError> {
+        Ok(vec![])
     }
 }
 
@@ -63,22 +63,8 @@ impl Packer for ZipPacker {
         Ok(true)
     }
 
-    fn do_pack_buffer(&self, log_name: &str, log: &[u8]) -> Result<bool, LogError> {
-        use std::io::Write;
-        let zip_path = format!("{log_name}.zip");
-        let zip_file = File::create(&zip_path)
-            .map_err(|e| LogError::from(format!("[fast_log] create({zip_path}) fail:{e}")))?;
-
-        let mut zip = zip::ZipWriter::new(zip_file);
-        zip.start_file::<&str, ()>(log_name, FileOptions::default())
-            .map_err(|e| LogError::from(e.to_string()))?;
-
-        zip.write_all(log)
-            .map_err(|e| LogError::from(e.to_string()))?;
-
-        zip.finish().map_err(|e| LogError::from(e.to_string()))?;
-
-        Ok(true)
+    fn do_pack_buffer(&self, _log: &[u8]) -> Result<Vec<u8>, LogError> {
+        Ok(vec![])
     }
 }
 
@@ -114,13 +100,9 @@ impl Packer for LZ4Packer {
         Ok(true)
     }
 
-    fn do_pack_buffer(&self, log_name: &str, log: &[u8]) -> Result<bool, LogError> {
+    fn do_pack_buffer(&self, log: &[u8]) -> Result<Vec<u8>, LogError> {
         use std::io::Write;
-        let lz4_path = format!("{}.lz4", log_name);
-        let lz4_file = File::create(&lz4_path)
-            .map_err(|e| LogError::from(format!("[fast_log] create(&{}) fail:{}", lz4_path, e)))?;
-        //write lz4 bytes data
-        let mut encoder = FrameEncoder::new(lz4_file);
+        let mut encoder = FrameEncoder::new(Vec::new());
         //buf reader
         encoder
             .write_all(log)
@@ -132,7 +114,7 @@ impl Packer for LZ4Packer {
                 result.err()
             )));
         }
-        Ok(true)
+        Ok(result.unwrap())
     }
 }
 
@@ -169,13 +151,9 @@ impl Packer for GZipPacker {
         Ok(true)
     }
 
-    fn do_pack_buffer(&self, log_name: &str, log: &[u8]) -> Result<bool, LogError> {
+    fn do_pack_buffer(&self, log: &[u8]) -> Result<Vec<u8>, LogError> {
         use std::io::Write;
-        let zip_path = format!("{}.gz", log_name);
-        let zip_file = File::create(&zip_path)
-            .map_err(|e| LogError::from(format!("[fast_log] create(&{}) fail:{}", zip_path, e)))?;
-        //write zip bytes data
-        let mut zip = GzEncoder::new(zip_file, Compression::default());
+        let mut zip = GzEncoder::new(Vec::new(), Compression::default());
         zip.write_all(log)
             .map_err(|e| LogError::from(e.to_string()))?;
         zip.flush().map_err(|e| LogError::from(e.to_string()))?;
@@ -186,6 +164,6 @@ impl Packer for GZipPacker {
                 finish.err()
             )));
         }
-        Ok(true)
+        Ok(finish.unwrap())
     }
 }

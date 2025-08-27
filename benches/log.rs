@@ -1,6 +1,6 @@
 use criterion::Criterion;
-use fast_log::{info, Config, Loggers};
 use fast_log::appender::{FastLogRecord, LogAppender};
+use fast_log::{Config, Loggers, info};
 
 pub fn bench_log(c: &mut Criterion) {
     struct BenchRecvLog {}

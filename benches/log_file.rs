@@ -1,6 +1,6 @@
-use fast_log::{info, Config, Loggers};
+use fast_log::{Config, Loggers, info};
 
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 pub fn bench_log_file(c: &mut Criterion) {
     let _ = std::fs::remove_file("target/test_bench.log");
     let logger = Loggers::new(

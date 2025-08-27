@@ -21,7 +21,7 @@ pub trait Packer: Send + Sync {
     ///return bool: remove_log_file
     fn do_pack(&self, log_file: File, log_file_path: &str) -> Result<bool, LogError>;
 
-    fn do_pack_buffer(&self, log_name: &str, log: &[u8]) -> Result<bool, LogError>;
+    fn do_pack_buffer(&self, log: &[u8]) -> Result<Vec<u8>, LogError>;
 
     /// default 0 is not retry pack. if retry > 0 ,it will trying rePack
     fn retry(&self) -> i32 {
@@ -38,8 +38,8 @@ impl Packer for Box<dyn Packer> {
         self.deref().do_pack(log_file, log_file_path)
     }
 
-    fn do_pack_buffer(&self, _log_name: &str, _log: &[u8]) -> Result<bool, LogError> {
-        todo!()
+    fn do_pack_buffer(&self, _log: &[u8]) -> Result<Vec<u8>, LogError> {
+        Ok(vec![])
     }
 }
 
