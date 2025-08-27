@@ -1,6 +1,6 @@
 use crate::log::bench_log;
 use crate::log_file::bench_log_file;
-use criterion::{Criterion, criterion_group, criterion_main};
+use criterion::{criterion_group, criterion_main};
 
 pub mod log;
 pub mod log_file;
