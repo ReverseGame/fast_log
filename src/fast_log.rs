@@ -8,12 +8,12 @@ use std::sync::{Arc, LazyLock, OnceLock};
 use std::time::SystemTime;
 pub static LOGGERS: LazyLock<DashMap<String, &'static Logger>> = LazyLock::new(DashMap::new);
 /// get Logger,but you must call `fast_log::init`
+const UNKNOWN: &str = "unknown";
 pub fn logger(key: &str) -> &'static Logger {
     if LOGGERS.contains_key(key) {
         LOGGERS.get(key).unwrap().value()
     } else {
-        let key = "unknown";
-        LOGGERS.get(key).unwrap().value()
+        LOGGERS.get(UNKNOWN).unwrap().value()
     }
 }
 
