@@ -27,9 +27,6 @@ path = "src/split_log_gz.rs"
 name = "wait_log"
 path = "src/wait_log.rs"
 [[bin]]
-name = "bench_test_buffer"
-path = "src/bench_test_buffer.rs"
-[[bin]]
 name = "bench_test_file"
 path = "src/bench_test_file.rs"
 [[bin]]
@@ -63,3 +60,4 @@ fastdate = "0.3"
 fast_log = { path = "../", features = ["lz4", "zip", "gzip"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 serde = { version = "1.0", features = ["derive"] }
+chrono = "0.4.41"
