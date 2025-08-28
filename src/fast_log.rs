@@ -13,12 +13,6 @@ pub fn logger(key: &str) -> &'static Logger {
         LOGGERS.get(key).unwrap().value()
     } else {
         let key = "unknown";
-        let _ = init(
-            Config::new()
-                .chan_len(Some(5000))
-                .file(&format!("{key}.log")),
-            key,
-        );
         LOGGERS.get(key).unwrap().value()
     }
 }
