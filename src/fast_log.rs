@@ -175,7 +175,7 @@ pub fn init(config: Config, key: &str) -> Result<&'static Logger, LogError> {
                         match x.command {
                             Command::CommandRecord => {}
                             Command::CommandExit => {
-                                exit = true;
+                                // exit = true;
                                 continue;
                             }
                             Command::CommandFlush(_) => {
@@ -217,17 +217,17 @@ pub fn init(config: Config, key: &str) -> Result<&'static Logger, LogError> {
                             .format
                             .do_format(x);
                     }
-                    if x.command.eq(&Command::CommandExit) {
-                        exit = true;
-                    }
+                    // if x.command.eq(&Command::CommandExit) {
+                    //     exit = true;
+                    // }
                 }
                 let data = Arc::new(remain);
                 for x in senders.iter() {
                     let _ = x.send(data.clone());
                 }
-                if exit {
-                    break;
-                }
+                // if exit {
+                //     break;
+                // }
             }
         });
     }
