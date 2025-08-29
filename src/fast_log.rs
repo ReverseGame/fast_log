@@ -184,9 +184,9 @@ pub fn init(config: Config, key: &str) -> Result<&'static Logger, LogError> {
                         }
                     }
                 }
-                if exit {
-                    break;
-                }
+                // if exit {
+                //     break;
+                // }
             }
         });
     }
